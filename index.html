@@ -1,0 +1,429 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>RetailIQ Dashboard</title>
+    <link rel="stylesheet" href="styles.css">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/moment@2.29.4/moment.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chartjs-adapter-moment@1.0.1/dist/chartjs-adapter-moment.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js/dist/chart.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-datalabels@2.0.0"></script>
+    <script src="https://d3js.org/d3.v7.min.js"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+</head>
+<body>
+    <div class="dashboard">
+        <div class="sidebar">
+            <div class="logo">
+                <h2>RetailIQ</h2>
+            </div>
+            <nav>
+                <ul>
+                    <li class="active" data-section="overview"><i class="fas fa-home"></i> Overview</li>
+                    <li data-section="customers"><i class="fas fa-users"></i> Customers</li>
+                    <li data-section="products"><i class="fas fa-shopping-cart"></i> Products</li>
+                    <li data-section="geography" style="display: none;"><i class="fas fa-map-marker-alt"></i> Geography</li>
+                    <li data-section="predictions"><i class="fas fa-chart-line"></i> Predictions</li>
+                </ul>
+            </nav>
+            <div class="theme-toggle">
+                <span>Light</span>
+                <label class="switch">
+                    <input type="checkbox" id="theme-toggle">
+                    <span class="slider round"></span>
+                </label>
+                <span>Dark</span>
+            </div>
+        </div>
+        
+        <div class="main-content">
+            <header>
+                <div class="date-filters">
+                    <label for="time-range">Time Range:</label>
+                    <select id="time-range">
+                        <option value="7">Last 7 days</option>
+                        <option value="30" selected>Last 30 days</option>
+                        <option value="90">Last 90 days</option>
+                        <option value="365">Last year</option>
+                    </select>
+                    
+                    <button id="date-picker-toggle" class="date-picker-toggle">
+                        <i class="fas fa-calendar"></i> Custom Range
+                    </button>
+                    
+                    <div id="custom-date-range" class="custom-date-range hidden">
+                        <input type="date" id="start-date">
+                        <input type="date" id="end-date">
+                        <button id="apply-date-range">Apply</button>
+                    </div>
+                </div>
+                
+                <div class="user-actions">
+                    <button id="export-data" class="export-btn">
+                        <i class="fas fa-download"></i> Export
+                    </button>
+                    <div class="user-profile">
+                        <span>Admin</span>
+                        <div class="avatar">A</div>
+                    </div>
+                </div>
+            </header>
+            
+            <!-- Dashboard Sections -->
+            <div id="overview" class="dashboard-section active">
+                <h1>Sales Overview</h1>
+                <div class="kpi-container">
+                    <div class="kpi-card" id="total-sales">
+                        <div class="kpi-icon"><i class="fas fa-dollar-sign"></i></div>
+                        <div class="kpi-content">
+                            <h3>Total Sales</h3>
+                            <div class="kpi-value">$0</div>
+                            <div class="kpi-change">+0% <span class="period">vs last period</span></div>
+                        </div>
+                    </div>
+                    
+                    <div class="kpi-card" id="avg-order">
+                        <div class="kpi-icon"><i class="fas fa-shopping-bag"></i></div>
+                        <div class="kpi-content">
+                            <h3>Avg. Order Value</h3>
+                            <div class="kpi-value">$0</div>
+                            <div class="kpi-change">+0% <span class="period">vs last period</span></div>
+                        </div>
+                    </div>
+                    
+                    <div class="kpi-card" id="customer-count">
+                        <div class="kpi-icon"><i class="fas fa-users"></i></div>
+                        <div class="kpi-content">
+                            <h3>Total Customers</h3>
+                            <div class="kpi-value">0</div>
+                            <div class="kpi-change">+0% <span class="period">vs last period</span></div>
+                        </div>
+                    </div>
+                    
+                    <div class="kpi-card" id="conversion-rate">
+                        <div class="kpi-icon"><i class="fas fa-percent"></i></div>
+                        <div class="kpi-content">
+                            <h3>Conversion Rate</h3>
+                            <div class="kpi-value">0%</div>
+                            <div class="kpi-change">+0% <span class="period">vs last period</span></div>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="chart-container large">
+                    <div class="chart-header">
+                        <h2>Sales Trend</h2>
+                        <div class="chart-controls">
+                            <button class="chart-control active" data-view="daily">Daily</button>
+                            <button class="chart-control" data-view="weekly">Weekly</button>
+                            <button class="chart-control" data-view="monthly">Monthly</button>
+                        </div>
+                    </div>
+                    <div class="chart-wrapper">
+                        <canvas id="sales-trend-chart"></canvas>
+                    </div>
+                </div>
+                
+                <div class="chart-row">
+                    <div class="chart-container medium">
+                        <div class="chart-header">
+                            <h2>Sales by Category</h2>
+                            <select id="category-chart-view">
+                                <option value="pie">Pie Chart</option>
+                                <option value="bar">Bar Chart</option>
+                            </select>
+                        </div>
+                        <div class="chart-wrapper">
+                            <canvas id="category-sales-chart"></canvas>
+                        </div>
+                    </div>
+                    
+                    <div class="chart-container medium">
+                        <div class="chart-header">
+                            <h2>Top Products</h2>
+                            <select id="top-products-count">
+                                <option value="5">Top 5</option>
+                                <option value="10" selected>Top 10</option>
+                                <option value="15">Top 15</option>
+                            </select>
+                        </div>
+                        <div class="chart-wrapper">
+                            <canvas id="top-products-chart"></canvas>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <div id="customers" class="dashboard-section">
+                <h1>Customer Analysis</h1>
+                
+                <div class="chart-row">
+                    <div class="chart-container medium">
+                        <div class="chart-header">
+                            <h2>Age Distribution</h2>
+                        </div>
+                        <div class="chart-wrapper">
+                            <canvas id="age-distribution-chart"></canvas>
+                        </div>
+                    </div>
+                    
+                    <div class="chart-container medium">
+                        <div class="chart-header">
+                            <h2>Gender Distribution</h2>
+                        </div>
+                        <div class="chart-wrapper">
+                            <canvas id="gender-distribution-chart"></canvas>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="chart-container large">
+                    <div class="chart-header">
+                        <h2>Customer Segmentation</h2>
+                        <div class="segmentation-controls">
+                            <button class="segment-control active" data-axis="purchase">Purchase Amount</button>
+                            <button class="segment-control" data-axis="frequency">Purchase Frequency</button>
+                            <button class="segment-control" data-axis="recency">Purchase Recency</button>
+                        </div>
+                    </div>
+                    <div class="chart-wrapper">
+                        <div id="customer-segmentation-chart"></div>
+                    </div>
+                </div>
+                
+                <div class="chart-container large">
+                    <div class="chart-header">
+                        <h2>Purchase Patterns by Demographics</h2>
+                        <select id="demographic-filter">
+                            <option value="age">By Age Group</option>
+                            <option value="gender">By Gender</option>
+                            <option value="occupation">By Occupation</option>
+                            <option value="marital">By Marital Status</option>
+                        </select>
+                    </div>
+                    <div class="chart-wrapper">
+                        <canvas id="demographic-purchases-chart"></canvas>
+                    </div>
+                </div>
+            </div>
+            
+            <div id="products" class="dashboard-section">
+                <h1>Product Analysis</h1>
+                
+                <div class="chart-container large">
+                    <div class="chart-header">
+                        <h2>Product Category Performance</h2>
+                    </div>
+                    <div class="chart-wrapper">
+                        <div id="product-treemap-chart"></div>
+                    </div>
+                </div>
+                
+                <div class="chart-row">
+                    <div class="chart-container medium">
+                        <div class="chart-header">
+                            <h2>Cross-Category Sales</h2>
+                            <div class="chart-controls">
+                                <button class="chart-control active" data-view="force">Force Layout</button>
+                            </div>
+                        </div>
+                        <div class="chart-wrapper">
+                            <div id="category-correlation-chart"></div>
+                        </div>
+                    </div>
+                    
+                    <div class="chart-container medium">
+                        <div class="chart-header">
+                            <h2>Product Price Range Analysis</h2>
+                        </div>
+                        <div class="chart-wrapper">
+                            <canvas id="price-range-chart"></canvas>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="chart-container large">
+                    <div class="chart-header">
+                        <h2>Product Performance Over Time</h2>
+                        <select id="product-time-view">
+                            <option value="category">By Category</option>
+                            <option value="individual">By Individual Products</option>
+                        </select>
+                    </div>
+                    <div class="chart-wrapper">
+                        <canvas id="product-time-chart"></canvas>
+                    </div>
+                </div>
+            </div>
+            
+            <div id="geography" class="dashboard-section" style="display: none;">
+                <h1>Geographic Analysis</h1>
+                
+                <div class="chart-container large">
+                    <div class="chart-header">
+                        <h2>Sales by City Category</h2>
+                    </div>
+                    <div class="chart-wrapper">
+                        <canvas id="city-sales-chart"></canvas>
+                    </div>
+                </div>
+                
+                <div class="chart-row">
+                    <div class="chart-container medium">
+                        <div class="chart-header">
+                            <h2>Customer Stay Duration Impact</h2>
+                        </div>
+                        <div class="chart-wrapper">
+                            <div id="stay-duration-chart"></div>
+                        </div>
+                    </div>
+                    
+                    <div class="chart-container medium">
+                        <div class="chart-header">
+                            <h2>City Category Demographics</h2>
+                            <select id="city-demographic-filter">
+                                <option value="age">Age Distribution</option>
+                                <option value="gender">Gender Distribution</option>
+                                <option value="occupation">Occupation Distribution</option>
+                            </select>
+                        </div>
+                        <div class="chart-wrapper">
+                            <canvas id="city-demographic-chart"></canvas>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="chart-container large">
+                    <div class="chart-header">
+                        <h2>Purchase Behavior by Location</h2>
+                    </div>
+                    <div class="chart-wrapper">
+                        <div id="geo-heatmap-chart"></div>
+                    </div>
+                </div>
+            </div>
+            
+            <div id="predictions" class="dashboard-section">
+                <h1>Predictive Analytics</h1>
+                
+                <div class="chart-container large">
+                    <div class="chart-header">
+                        <h2>Sales Forecast</h2>
+                        <select id="forecast-timeframe">
+                            <option value="30">Next 30 Days</option>
+                            <option value="90">Next Quarter</option>
+                            <option value="365">Next Year</option>
+                        </select>
+                    </div>
+                    <div class="chart-wrapper">
+                        <canvas id="sales-forecast-chart"></canvas>
+                    </div>
+                </div>
+                
+                <div class="chart-row">
+                    <div class="chart-container medium">
+                        <div class="chart-header">
+                            <h2>Customer LTV Prediction</h2>
+                        </div>
+                        <div class="chart-wrapper">
+                            <canvas id="customer-ltv-chart"></canvas>
+                        </div>
+                    </div>
+                    
+                    <div class="chart-container medium">
+                        <div class="chart-header">
+                            <h2>Churn Risk Analysis</h2>
+                        </div>
+                        <div class="chart-wrapper">
+                            <canvas id="churn-risk-chart"></canvas>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="chart-container large">
+                    <div class="chart-header">
+                        <h2>Anomaly Detection</h2>
+                        <div class="anomaly-controls">
+                            <button class="anomaly-control active" data-type="sales">Sales</button>
+                            <button class="anomaly-control" data-type="customers">Customers</button>
+                            <button class="anomaly-control" data-type="products">Products</button>
+                        </div>
+                    </div>
+                    <div class="chart-wrapper">
+                        <canvas id="anomaly-detection-chart"></canvas>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Notification System -->
+    <div id="notification-container"></div>
+    
+    <!-- Export Modal -->
+    <div id="export-modal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2>Export Dashboard Data</h2>
+                <span class="close-modal">&times;</span>
+            </div>
+            <div class="modal-body">
+                <div class="export-options">
+                    <div class="export-option">
+                        <input type="checkbox" id="export-overview" checked>
+                        <label for="export-overview">Sales Overview</label>
+                    </div>
+                    <div class="export-option">
+                        <input type="checkbox" id="export-customers" checked>
+                        <label for="export-customers">Customer Analysis</label>
+                    </div>
+                    <div class="export-option">
+                        <input type="checkbox" id="export-products" checked>
+                        <label for="export-products">Product Analysis</label>
+                    </div>
+                    <div class="export-option">
+                        <input type="checkbox" id="export-geography" checked>
+                        <label for="export-geography">Geographic Analysis</label>
+                    </div>
+                    <div class="export-option">
+                        <input type="checkbox" id="export-predictions" checked>
+                        <label for="export-predictions">Predictive Analytics</label>
+                    </div>
+                </div>
+                <div class="export-format">
+                    <h3>Format:</h3>
+                    <div class="format-options">
+                        <div class="format-option">
+                            <input type="radio" id="format-csv" name="format" checked>
+                            <label for="format-csv">CSV</label>
+                        </div>
+                        <div class="format-option">
+                            <input type="radio" id="format-excel" name="format">
+                            <label for="format-excel">Excel</label>
+                        </div>
+                        <div class="format-option">
+                            <input type="radio" id="format-pdf" name="format">
+                            <label for="format-pdf">PDF</label>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button id="cancel-export" class="modal-btn">Cancel</button>
+                <button id="confirm-export" class="modal-btn primary">Export</button>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Loading Overlay -->
+    <div id="loading-overlay" class="hidden">
+        <div class="spinner"></div>
+        <div class="loading-text">Loading dashboard data...</div>
+    </div>
+    
+    <script src="data.js"></script>
+    <script src="dashboard.js"></script>
+</body>
+</html> 
