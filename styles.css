@@ -466,7 +466,7 @@ header {
 /* Product Page specific chart layouts */
 #products .chart-row {
     display: flex;
-    align-items: stretch;
+    align-items: flex-start;
     gap: 24px;
 }
 
@@ -994,6 +994,9 @@ canvas {
     pointer-events: none;
     font-size: 12px;
     z-index: 1000;
+    color: var(--text-primary);
+    min-width: 150px;
+    max-width: 300px;
 }
 
 /* Improve chart legends */
@@ -1170,4 +1173,33 @@ canvas {
     .chart-wrapper:first-child {
         grid-column: 1 / -1;
     }
+}
+
+/* Category correlation specific styles */
+#category-correlation-chart {
+    position: relative;
+    overflow: visible !important;
+}
+
+#category-correlation-chart .node circle {
+    cursor: pointer;
+    transition: all 0.3s ease;
+}
+
+#category-correlation-chart .link {
+    cursor: pointer;
+    transition: all 0.3s ease;
+}
+
+#category-correlation-chart text {
+    pointer-events: none;
+    user-select: none;
+}
+
+/* Ensure tooltips are always on top */
+#category-correlation-chart .d3-tooltip {
+    background: rgba(0, 0, 0, 0.8);
+    color: white;
+    border: none;
+    pointer-events: none;
 } 

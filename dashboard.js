@@ -632,12 +632,12 @@ function renderPredictionsSection() {
         <div class="forecast-controls">
             <div class="control-group">
                 <label style="color: var(--text-primary);">Marketing Spend Impact:</label>
-                <input type="range" id="marketing-impact" min="0" max="200" step="10" value="100">
+                <input type="range" id="marketing-impact" min="50" max="150" step="5" value="100">
                 <span class="value-display" style="color: var(--text-primary);">100%</span>
             </div>
             <div class="control-group">
                 <label style="color: var(--text-primary);">Growth Rate:</label>
-                <input type="range" id="growth-rate" min="-50" max="50" step="5" value="0">
+                <input type="range" id="growth-rate" min="-20" max="30" step="2" value="0">
                 <span class="value-display" style="color: var(--text-primary);">0%</span>
             </div>
             <div class="control-group">
@@ -693,24 +693,23 @@ function updateSalesForecastChart() {
     const canvas = document.getElementById('sales-forecast-chart');
     if (!canvas) return;
 
-    // Get the raw marketing impact value (0-200%)
+    // Get the raw marketing impact value (50-150%)
     const rawMarketingImpact = parseFloat(document.getElementById('marketing-impact').value) / 100;
     
-    // Apply diminishing returns to marketing impact
-    // Using a modified logarithmic function for diminishing returns
-    // When marketing spend is reduced (< 100%), the impact decreases more gradually
-    // When marketing spend is increased (> 100%), the impact increases with diminishing returns
+    // Apply a more realistic marketing impact calculation
+    // Using a dampened response curve: small changes near 100% have modest effects
+    // Larger changes have diminishing returns
     let marketingImpact;
     if (rawMarketingImpact <= 1) {
-        // For decreased marketing spend (0-100%)
-        // Using square root function for more gradual decrease
-        marketingImpact = Math.sqrt(rawMarketingImpact);
+        // For decreased marketing spend (50-100%)
+        // More gradual decrease with a minimum impact of 0.7
+        marketingImpact = 0.7 + (0.3 * rawMarketingImpact);
     } else {
-        // For increased marketing spend (100-200%)
-        // Using logarithmic function for diminishing returns
-        // log(x + 1) where x is the percentage above 100%
-        const extraSpend = rawMarketingImpact - 1; // How much above 100%
-        marketingImpact = 1 + Math.log(extraSpend + 1) / Math.log(2);
+        // For increased marketing spend (100-150%)
+        // Logarithmic curve with diminishing returns
+        // Maximum impact capped at 1.3 (30% increase)
+        const extraSpend = rawMarketingImpact - 1;
+        marketingImpact = 1 + (0.3 * (Math.log(extraSpend * 9 + 1) / Math.log(10)));
     }
 
     const growthRate = parseFloat(document.getElementById('growth-rate').value) / 100;
@@ -749,46 +748,47 @@ function updateSalesForecastChart() {
     const lastDate = dates[dates.length - 1];
     let lastValue = actualValues[actualValues.length - 1];
 
-    // Apply pricing strategy multiplier
+    // Apply pricing strategy multiplier with more modest effects
     let pricingMultiplier = 1;
     switch(pricingStrategy) {
-        case 'premium': pricingMultiplier = 1.2; break;
-        case 'discount': pricingMultiplier = 0.8; break;
+        case 'premium': pricingMultiplier = 1.1; break; // Reduced from 1.2
+        case 'discount': pricingMultiplier = 0.9; break; // Increased from 0.8
     }
 
-    // Apply retention rate impact
+    // Apply retention rate impact with more modest effects
     let retentionMultiplier = 1;
     switch(retentionRate) {
-        case 'high': retentionMultiplier = 1.1; break;
-        case 'low': retentionMultiplier = 0.9; break;
+        case 'high': retentionMultiplier = 1.05; break; // Reduced from 1.1
+        case 'low': retentionMultiplier = 0.95; break; // Increased from 0.9
     }
 
     // Monthly seasonality factors (based on historical retail patterns)
+    // Reduced extreme seasonality effects
     const monthlySeasonality = {
-        0: 0.8,  // January (Post-holiday drop)
-        1: 0.7,  // February
-        2: 0.9,  // March (Spring shopping)
-        3: 1.0,  // April
-        4: 1.1,  // May (Mother's Day)
-        5: 1.2,  // June (Summer start)
-        6: 1.3,  // July (Summer sales)
-        7: 1.25, // August (Back to school)
-        8: 1.0,  // September
-        9: 1.1,  // October (Early holiday shopping)
-        10: 1.4, // November (Black Friday)
-        11: 1.6  // December (Holiday season)
+        0: 0.85,  // January (Post-holiday drop)
+        1: 0.8,   // February
+        2: 0.95,  // March (Spring shopping)
+        3: 1.0,   // April
+        4: 1.05,  // May (Mother's Day)
+        5: 1.1,   // June (Summer start)
+        6: 1.15,  // July (Summer sales)
+        7: 1.1,   // August (Back to school)
+        8: 1.0,   // September
+        9: 1.05,  // October (Early holiday shopping)
+        10: 1.2,  // November (Black Friday)
+        11: 1.3   // December (Holiday season)
     };
 
-    // Holiday events and their impact factors
+    // Holiday events and their impact factors (reduced extreme effects)
     const holidays = [
-        { month: 1, day: 1, name: "New Year's Day", factor: 0.7 },
-        { month: 2, day: 14, name: "Valentine's Day", factor: 1.4 },
-        { month: 5, day: 10, name: "Mother's Day", factor: 1.5 }, // Approximate date
-        { month: 6, day: 20, name: "Father's Day", factor: 1.3 }, // Approximate date
-        { month: 11, day: 25, name: "Black Friday", factor: 2.5 },
-        { month: 11, day: 28, name: "Cyber Monday", factor: 2.0 }, // Approximate date
-        { month: 12, day: 24, name: "Christmas Eve", factor: 2.0 },
-        { month: 12, day: 26, name: "After Christmas", factor: 1.8 }
+        { month: 1, day: 1, name: "New Year's Day", factor: 0.8 },
+        { month: 2, day: 14, name: "Valentine's Day", factor: 1.2 },
+        { month: 5, day: 10, name: "Mother's Day", factor: 1.25 },
+        { month: 6, day: 20, name: "Father's Day", factor: 1.15 },
+        { month: 11, day: 25, name: "Black Friday", factor: 1.5 },
+        { month: 11, day: 28, name: "Cyber Monday", factor: 1.4 },
+        { month: 12, day: 24, name: "Christmas Eve", factor: 1.4 },
+        { month: 12, day: 26, name: "After Christmas", factor: 1.3 }
     ];
 
     for (let i = 1; i <= 30; i++) {
@@ -796,20 +796,20 @@ function updateSalesForecastChart() {
         forecastDate.setDate(forecastDate.getDate() + i);
         dates.push(forecastDate);
         
-        // Apply weekly seasonality
+        // Apply weekly seasonality (reduced effects)
         const dayOfWeek = forecastDate.getDay();
         let seasonalFactor = 1;
         
         // Weekly patterns
         switch(dayOfWeek) {
             case 0: // Sunday
-                seasonalFactor = 0.8;
+                seasonalFactor = 0.9;
                 break;
             case 6: // Saturday
-                seasonalFactor = 1.3;
+                seasonalFactor = 1.15;
                 break;
             case 5: // Friday
-                seasonalFactor = 1.4;
+                seasonalFactor = 1.2;
                 break;
             default: // Mon-Thu
                 seasonalFactor = 1;
@@ -827,20 +827,30 @@ function updateSalesForecastChart() {
             seasonalFactor *= holiday.factor;
         }
 
-        // Apply marketing impact
-        seasonalFactor *= marketingImpact;
+        // Apply marketing impact with dampening over time
+        // Marketing impact decreases as we forecast further into the future
+        const marketingDampening = 1 - (i / 120); // Gradual decrease over time
+        const adjustedMarketingImpact = 1 + ((marketingImpact - 1) * marketingDampening);
+        seasonalFactor *= adjustedMarketingImpact;
         
         // Calculate forecast value with compound growth and all factors
-        const timeFactor = Math.pow(1 + growthRate, i / 365); // Annualized growth rate
+        // Use a more conservative growth calculation
+        const timeFactor = Math.pow(1 + (growthRate / 12), i / 30); // Monthly compound growth
         const forecastValue = lastValue * seasonalFactor * pricingMultiplier * retentionMultiplier * timeFactor;
         
-        actualValues.push(null);
-        forecastValues.push(forecastValue);
-        upperBound.push(forecastValue * (1 + stdDev/avgDailySales));
-        lowerBound.push(forecastValue * (1 - stdDev/avgDailySales));
+        // Add noise reduction for more stable predictions
+        const smoothedValue = (forecastValue + lastValue) / 2;
         
-        // Update last value for next iteration
-        lastValue = forecastValue;
+        actualValues.push(null);
+        forecastValues.push(smoothedValue);
+        
+        // Adjust confidence intervals (reduced spread)
+        const confidenceRange = (stdDev / avgDailySales) * 0.5; // Reduced from 1.0
+        upperBound.push(smoothedValue * (1 + confidenceRange));
+        lowerBound.push(smoothedValue * (1 - confidenceRange));
+        
+        // Update last value for next iteration using the smoothed value
+        lastValue = smoothedValue;
     }
 
     const config = {
@@ -870,7 +880,7 @@ function updateSalesForecastChart() {
                 {
                     label: 'Upper Bound',
                     data: upperBound,
-                    borderColor: 'rgba(255, 159, 64, 0.2)',
+                    borderColor: 'rgba(255, 159, 64, 0.7)',
                     backgroundColor: 'rgba(255, 159, 64, 0.1)',
                     borderWidth: 1,
                     pointRadius: 0,
@@ -879,7 +889,7 @@ function updateSalesForecastChart() {
                 {
                     label: 'Lower Bound',
                     data: lowerBound,
-                    borderColor: 'rgba(255, 159, 64, 0.2)',
+                    borderColor: 'rgba(255, 159, 64, 0.7)',
                     backgroundColor: 'rgba(255, 159, 64, 0.1)',
                     borderWidth: 1,
                     pointRadius: 0,
@@ -2240,23 +2250,49 @@ function renderCategoryCorrelation() {
     
     // Set up container
     const container = document.getElementById('category-correlation-chart');
-    if (!container) return; // Safety check if container doesn't exist
+    if (!container) return;
     
     container.innerHTML = '';
     
     // Set up dimensions with optimized margins
-    const margin = { top: 15, right: 15, bottom: 15, left: 15 }; // Slightly increased margins
+    const margin = { top: 20, right: 20, bottom: 20, left: 20 };
     const width = container.clientWidth - margin.left - margin.right;
-    const height = container.clientHeight - margin.top - margin.bottom || 450; // Increased fallback height
+    const height = container.clientHeight - margin.top - margin.bottom || 450;
     
     if (width <= 0) {
-        // If container doesn't have width yet, retry after a delay
         setTimeout(() => renderCategoryCorrelation(), 100);
         return;
     }
     
     // Create a map of user purchases by category
     const userPurchases = {};
+    const categoryStats = {};
+    
+    // Initialize category stats
+    sales.forEach(sale => {
+        const categoryId = sale.category_id;
+        if (!categoryStats[categoryId]) {
+            categoryStats[categoryId] = {
+                totalSales: 0,
+                uniqueCustomers: new Set(),
+                transactions: 0,
+                totalValue: 0
+            };
+        }
+        categoryStats[categoryId].totalSales += sale.quantity;
+        categoryStats[categoryId].uniqueCustomers.add(sale.user_id);
+        categoryStats[categoryId].transactions += 1;
+        categoryStats[categoryId].totalValue += sale.purchase_amount;
+    });
+    
+    // Calculate averages and convert Sets to counts
+    Object.keys(categoryStats).forEach(categoryId => {
+        const stats = categoryStats[categoryId];
+        stats.uniqueCustomerCount = stats.uniqueCustomers.size;
+        stats.avgTransactionValue = stats.totalValue / stats.transactions;
+        delete stats.uniqueCustomers; // Clean up the Set
+    });
+    
     sales.forEach(sale => {
         const userId = sale.user_id;
         const categoryId = sale.category_id;
@@ -2268,7 +2304,7 @@ function renderCategoryCorrelation() {
         userPurchases[userId].add(categoryId);
     });
     
-    // Count occurrences of category pairs
+    // Count occurrences of category pairs and calculate correlation
     const categoryPairs = {};
     const categoryNames = {};
     const categoryTotals = {};
@@ -2280,7 +2316,7 @@ function renderCategoryCorrelation() {
         categoryTotals[categoryId] = (categoryTotals[categoryId] || 0) + 1;
     });
     
-    // Calculate category pairs
+    // Calculate category pairs and correlation
     Object.values(userPurchases).forEach(categories => {
         const categoryArray = Array.from(categories);
         
@@ -2307,17 +2343,25 @@ function renderCategoryCorrelation() {
         }
     });
     
-    // Convert to array and sort by count - limit to fewer connections for clarity
-    const links = Object.values(categoryPairs)
-        .sort((a, b) => b.count - a.count)
-        .slice(0, 12); // Reduced to prevent overcrowding
+    // Calculate correlation coefficients
+    Object.values(categoryPairs).forEach(pair => {
+        const total1 = categoryTotals[pair.source];
+        const total2 = categoryTotals[pair.target];
+        pair.correlation = pair.count / Math.sqrt(total1 * total2);
+    });
     
-    // Create nodes array
+    // Convert to array and sort by correlation
+    const links = Object.values(categoryPairs)
+        .sort((a, b) => b.correlation - a.correlation)
+        .slice(0, 12);
+    
+    // Create nodes array with enhanced metrics
     const categoryIds = [...new Set([...links.map(d => d.source), ...links.map(d => d.target)])];
     const nodes = categoryIds.map(id => ({
         id,
         name: categoryNames[id],
-        value: categoryTotals[id] || 0
+        value: categoryTotals[id] || 0,
+        stats: categoryStats[id] || {}
     }));
     
     // Create SVG container
@@ -2332,133 +2376,242 @@ function renderCategoryCorrelation() {
     const g = svg.append('g')
         .attr('transform', `translate(${margin.left},${margin.top})`);
     
-    // Add a light background to the visualization area for better contrast
-    g.append('rect')
-        .attr('width', width)
-        .attr('height', height)
-        .attr('fill', 'var(--card-bg)')
-        .attr('rx', 8)
-        .attr('opacity', 0.5);
-    
-    // Simplified forces for better layout
+    // Create force simulation
     const simulation = d3.forceSimulation(nodes)
-        .force('link', d3.forceLink(links).id(d => d.id).distance(d => 100))
+        .force('link', d3.forceLink(links).id(d => d.id))
         .force('charge', d3.forceManyBody().strength(-400))
         .force('center', d3.forceCenter(width / 2, height / 2))
-        .force('collision', d3.forceCollide().radius(d => Math.sqrt(d.value) * 2.5 + 15))
-        .force('x', d3.forceX(width / 2).strength(0.07))
-        .force('y', d3.forceY(height / 2).strength(0.07));
+        .force('collision', d3.forceCollide().radius(50));
     
-    // Create links with varying thickness
-    const link = g.append('g')
-        .selectAll('line')
-        .data(links)
-        .enter()
-        .append('line')
-        .attr('stroke-width', d => Math.max(1.5, Math.log(d.count) * 2))
-        .attr('stroke', '#999')
-        .attr('stroke-opacity', 0.6);
-    
-    // Create nodes with size based on value
-    const node = g.append('g')
-        .selectAll('g')
-        .data(nodes)
-        .enter()
-        .append('g')
-        .attr('class', 'node-group')
-        .call(d3.drag()
-            .on('start', dragstarted)
-            .on('drag', dragged)
-            .on('end', dragended));
-    
-    // Add circles to node groups
-    node.append('circle')
-        .attr('r', d => Math.min(Math.sqrt(d.value) * 2.2, 30))
-        .attr('fill', (d, i) => getChartColors()[i % getChartColors().length])
-        .attr('stroke', '#fff')
-        .attr('stroke-width', 1.5);
-    
-    // Add text labels with better visibility
-    node.append('text')
-        .text(d => d.name)
-        .attr('text-anchor', 'middle')
-        .attr('dy', d => -Math.min(Math.sqrt(d.value) * 2.2, 30) - 8)
-        .attr('font-size', '11px')
-        .attr('font-weight', '600')
-        .attr('fill', 'var(--text-primary)')
-        .style('filter', 'drop-shadow(0px 0px 2px var(--card-bg))')
-        .style('pointer-events', 'none');
-    
-    // Calculate safe boundary to keep nodes in view
-    const nodeRadius = 35; // Maximum possible node radius with padding
-    const safeX = (d) => Math.max(nodeRadius, Math.min(width - nodeRadius, d.x));
-    const safeY = (d) => Math.max(nodeRadius, Math.min(height - nodeRadius, d.y));
-    
-    // Update positions on each simulation tick
-    simulation.on('tick', () => {
-        link
-            .attr('x1', d => safeX(d.source))
-            .attr('y1', d => safeY(d.source))
-            .attr('x2', d => safeX(d.target))
-            .attr('y2', d => safeY(d.target));
-        
-        node
-            .attr('transform', d => `translate(${safeX(d)}, ${safeY(d)})`);
-    });
-    
-    // Define drag functions
-    function dragstarted(event, d) {
-        if (!event.active) simulation.alphaTarget(0.3).restart();
-        d.fx = d.x;
-        d.fy = d.y;
-    }
-    
-    function dragged(event, d) {
-        d.fx = safeX({x: event.x});
-        d.fy = safeY({y: event.y});
-    }
-    
-    function dragended(event, d) {
-        if (!event.active) simulation.alphaTarget(0);
-        d.fx = null;
-        d.fy = null;
-    }
-    
-    // Add a tooltip for additional information
+    // Create tooltip
     const tooltip = d3.select(container)
         .append('div')
         .attr('class', 'd3-tooltip')
         .style('opacity', 0);
     
+    // Function to position tooltip within container bounds
+    function positionTooltip(event, content) {
+        const containerRect = container.getBoundingClientRect();
+        const scrollTop = window.pageYOffset || document.documentElement.scrollTop;
+        const scrollLeft = window.pageXOffset || document.documentElement.scrollLeft;
+        
+        // Set tooltip content first so we can measure its size
+        tooltip.html(content);
+        
+        // Get tooltip dimensions
+        const tooltipNode = tooltip.node();
+        const tooltipRect = tooltipNode.getBoundingClientRect();
+        
+        // Calculate position relative to container
+        let left = event.pageX - containerRect.left - scrollLeft + 10;
+        let top = event.pageY - containerRect.top - scrollTop - 10;
+        
+        // Adjust if tooltip would overflow right edge
+        if (left + tooltipRect.width > containerRect.width) {
+            left = event.pageX - containerRect.left - scrollLeft - tooltipRect.width - 10;
+        }
+        
+        // Adjust if tooltip would overflow bottom edge
+        if (top + tooltipRect.height > containerRect.height) {
+            top = event.pageY - containerRect.top - scrollTop - tooltipRect.height - 10;
+        }
+        
+        // Ensure tooltip doesn't go outside left or top edges
+        left = Math.max(10, left);
+        top = Math.max(10, top);
+        
+        // Apply position
+        tooltip
+            .style('left', left + 'px')
+            .style('top', top + 'px')
+            .style('opacity', 1);
+    }
+
+    // Draw links with varying thickness
+    const link = g.append('g')
+        .selectAll('line')
+        .data(links)
+        .enter()
+        .append('line')
+        .attr('class', 'link')
+        .attr('stroke-width', d => Math.sqrt(d.correlation) * 5)
+        .attr('stroke', '#999')
+        .attr('stroke-opacity', 0.6)
+        .style('cursor', 'pointer');
+
+    // Add hover effect to links
+    link.on('mouseover', function(event, d) {
+        // Highlight the link
+        d3.select(this)
+            .attr('stroke', '#000')
+            .attr('stroke-opacity', 1)
+            .attr('stroke-width', d => Math.sqrt(d.correlation) * 7);
+
+        // Highlight connected nodes
+        node.style('opacity', n => 
+            n.id === d.source.id || n.id === d.target.id ? 1 : 0.1
+        );
+
+        // Show tooltip with adjusted positioning
+        const content = `
+            <strong>Connection Details</strong><br>
+            ${d.source.name} ↔ ${d.target.name}<br>
+            Joint Purchases: ${formatNumber(d.count)}<br>
+            Correlation: ${(d.correlation * 100).toFixed(1)}%<br>
+            <small>Combined Value: ${formatCurrency(d.source.stats.totalValue + d.target.stats.totalValue)}</small>
+        `;
+        positionTooltip(event, content);
+    })
+    .on('mousemove', function(event) {
+        // Update tooltip position as mouse moves
+        const content = tooltip.html();
+        positionTooltip(event, content);
+    })
+    .on('mouseout', function(event, d) {
+        // Reset link appearance
+        d3.select(this)
+            .attr('stroke', '#999')
+            .attr('stroke-opacity', 0.6)
+            .attr('stroke-width', d => Math.sqrt(d.correlation) * 5);
+
+        // Reset node opacity
+        node.style('opacity', 1);
+
+        // Hide tooltip
+        tooltip.style('opacity', 0);
+    });
+
+    // Create node groups with improved interaction
+    const node = g.append('g')
+        .selectAll('g')
+        .data(nodes)
+        .enter()
+        .append('g')
+        .attr('class', 'node')
+        .style('cursor', 'pointer')
+        .call(d3.drag()
+            .on('start', dragstarted)
+            .on('drag', dragged)
+            .on('end', dragended));
+    
+    // Add circles to nodes
+    node.append('circle')
+        .attr('r', d => Math.sqrt(d.value) * 2)
+        .attr('fill', d => d3.schemeCategory10[d.id % 10])
+        .attr('stroke', '#fff')
+        .attr('stroke-width', 2);
+    
+    // Add labels to nodes
+    node.append('text')
+        .text(d => d.name)
+        .attr('x', 0)
+        .attr('y', d => -Math.sqrt(d.value) * 2 - 5)
+        .attr('text-anchor', 'middle')
+        .attr('fill', '#333')
+        .attr('font-size', '12px');
+    
+    // Enhanced tooltip content
     node.on('mouseover', function(event, d) {
-        tooltip.transition()
-            .duration(200)
-            .style('opacity', 0.9);
-        tooltip.html(`
+        const stats = d.stats;
+        const content = `
             <strong>${d.name}</strong><br>
-            Total: ${formatNumber(d.value)} sales
-        `)
-        .style('left', (event.pageX + 10) + 'px')
-        .style('top', (event.pageY - 28) + 'px');
+            Total Sales: ${formatNumber(stats.totalSales)}<br>
+            Unique Customers: ${formatNumber(stats.uniqueCustomerCount)}<br>
+            Avg Transaction: ${formatCurrency(stats.avgTransactionValue)}<br>
+            Total Value: ${formatCurrency(stats.totalValue)}
+        `;
+        positionTooltip(event, content);
+        
+        // Highlight connected nodes
+        const connectedNodes = new Set();
+        links.forEach(link => {
+            if (link.source.id === d.id) connectedNodes.add(link.target.id);
+            if (link.target.id === d.id) connectedNodes.add(link.source.id);
+        });
+        
+        node.style('opacity', n => connectedNodes.has(n.id) || n.id === d.id ? 1 : 0.1);
+        link.style('opacity', l => l.source.id === d.id || l.target.id === d.id ? 1 : 0.1);
+    })
+    .on('mousemove', function(event) {
+        const content = tooltip.html();
+        positionTooltip(event, content);
     })
     .on('mouseout', function() {
         tooltip.transition()
             .duration(500)
             .style('opacity', 0);
+        
+        // Reset highlighting
+        node.style('opacity', 1);
+        link.style('opacity', 0.6);
     });
     
-    // Add event listener to redraw when window is resized
-    const resizeChart = debounce(() => {
-        renderCategoryCorrelation();
-    }, 250);
+    // Add hover effect to links
+    link.on('mouseover', function(event, d) {
+        tooltip.transition()
+            .duration(200)
+            .style('opacity', 0.9);
+        tooltip.html(`
+            <strong>Connection Strength</strong><br>
+            ${d.source.name} ↔ ${d.target.name}<br>
+            Joint Purchases: ${formatNumber(d.count)}<br>
+            Correlation: ${(d.correlation * 100).toFixed(1)}%
+        `)
+        .style('left', (event.pageX + 10) + 'px')
+        .style('top', (event.pageY - 28) + 'px');
+        
+        d3.select(this)
+            .attr('stroke', '#000')
+            .attr('stroke-opacity', 1);
+    })
+    .on('mouseout', function() {
+        tooltip.transition()
+            .duration(500)
+            .style('opacity', 0);
+        
+        d3.select(this)
+            .attr('stroke', '#999')
+            .attr('stroke-opacity', 0.6);
+    });
     
-    window.addEventListener('resize', resizeChart);
+    // Update force simulation
+    simulation.on('tick', () => {
+        link
+            .attr('x1', d => d.source.x)
+            .attr('y1', d => d.source.y)
+            .attr('x2', d => d.target.x)
+            .attr('y2', d => d.target.y);
+        
+        node
+            .attr('transform', d => `translate(${d.x},${d.y})`);
+    });
+    
+    // Drag functions
+    function dragstarted(event) {
+        if (!event.active) simulation.alphaTarget(0.3).restart();
+        event.subject.fx = event.subject.x;
+        event.subject.fy = event.subject.y;
+    }
+    
+    function dragged(event) {
+        event.subject.fx = event.x;
+        event.subject.fy = event.y;
+    }
+    
+    function dragended(event) {
+        if (!event.active) simulation.alphaTarget(0);
+        event.subject.fx = null;
+        event.subject.fy = null;
+    }
     
     // Add this chart to our charts object to manage it later
     charts.categoryCorrelation = {
         update: renderCategoryCorrelation,
-        resize: resizeChart
+        resize: debounce(() => renderCategoryCorrelation(), 250)
     };
+    
+    // Add window resize listener
+    window.addEventListener('resize', charts.categoryCorrelation.resize);
 }
 
 // Product Price Range Analysis
@@ -2530,7 +2683,9 @@ function updatePriceRangeChart() {
                 borderColor: '#4361ee',
                 borderWidth: 1,
                 yAxisID: 'y',
-                order: 2 // Higher order means it's drawn first (behind other elements)
+                order: 2,
+                barPercentage: 0.6,
+                categoryPercentage: 0.7
             },
             {
                 type: 'line',
@@ -2540,89 +2695,136 @@ function updatePriceRangeChart() {
                 borderColor: '#f72585',
                 borderWidth: 2,
                 pointBackgroundColor: '#f72585',
-                pointRadius: 5,
-                pointHoverRadius: 7,
+                pointRadius: 4,
+                pointHoverRadius: 6,
                 pointBorderColor: '#fff',
                 pointBorderWidth: 1,
                 yAxisID: 'y1',
-                order: 1, // Lower order means it's drawn last (in front of other elements)
-                z: 10 // Higher z value to ensure it's on top
+                order: 1,
+                tension: 0.3
             }
         ]
     };
-    
-    // Chart configuration
-    const config = {
-        type: 'bar', // Change to 'scatter' as the base type
-        data: data,
-        options: {
-            responsive: true,
-            maintainAspectRatio: false,
-            scales: {
-                x: {
-                    grid: {
-                        display: false
+
+    const maxProductCount = Math.max(...priceRanges.map(range => range.count));
+    const maxSalesAmount = Math.max(...priceRangeSales.map(range => range.sales));
+
+    const options = {
+        responsive: true,
+        maintainAspectRatio: false,
+        layout: {
+            padding: {
+                top: 10,
+                right: 25,
+                bottom: 5,
+                left: 10
+            }
+        },
+        scales: {
+            y: {
+                beginAtZero: true,
+                position: 'left',
+                suggestedMax: maxProductCount * 1.05,
+                title: {
+                    display: true,
+                    text: 'Number of Products',
+                    font: {
+                        size: 12,
+                        weight: 'bold'
                     }
                 },
-                y: {
-                    beginAtZero: true,
-                    title: {
-                        display: true,
-                        text: 'Number of Products'
-                    },
-                    grid: {
-                        color: '#e2e8f0'
-                    }
+                grid: {
+                    color: getGridColor(),
+                    drawBorder: false,
+                    borderDash: [5, 5]
                 },
-                y1: {
-                    beginAtZero: true,
-                    position: 'right',
-                    title: {
-                        display: true,
-                        text: 'Sales Amount'
-                    },
-                    grid: {
-                        display: false
-                    },
-                    ticks: {
-                        callback: function(value) {
-                            return formatCurrency(value);
-                        }
-                    }
+                ticks: {
+                    padding: 5,
+                    maxTicksLimit: 5,
+                    callback: value => Math.round(value)
                 }
             },
-            plugins: {
-                legend: {
-                    position: 'bottom'
+            y1: {
+                beginAtZero: true,
+                position: 'right',
+                suggestedMax: maxSalesAmount * 1.05,
+                title: {
+                    display: true,
+                    text: 'Sales Amount',
+                    font: {
+                        size: 12,
+                        weight: 'bold'
+                    }
                 },
-                tooltip: {
-                    callbacks: {
-                        label: function(context) {
-                            const label = context.dataset.label || '';
-                            const value = context.raw;
-                            
-                            if (context.datasetIndex === 0) {
-                                return `${label}: ${value} products`;
-                            } else {
-                                return `${label}: ${formatCurrency(value)}`;
-                            }
+                grid: {
+                    display: false
+                },
+                ticks: {
+                    padding: 5,
+                    maxTicksLimit: 5,
+                    callback: value => formatCurrency(value)
+                }
+            },
+            x: {
+                grid: {
+                    display: false
+                },
+                ticks: {
+                    maxRotation: 45,
+                    minRotation: 45,
+                    padding: 5
+                }
+            }
+        },
+        plugins: {
+            legend: {
+                position: 'top',
+                align: 'start',
+                labels: {
+                    usePointStyle: true,
+                    padding: 15,
+                    boxWidth: 8
+                }
+            },
+            tooltip: {
+                backgroundColor: 'rgba(0, 0, 0, 0.8)',
+                titleFont: {
+                    size: 13
+                },
+                bodyFont: {
+                    size: 12
+                },
+                padding: 8,
+                callbacks: {
+                    label: function(context) {
+                        const label = context.dataset.label || '';
+                        const value = context.raw;
+                        
+                        if (context.datasetIndex === 0) {
+                            return `${label}: ${formatNumber(value)} products`;
+                        } else {
+                            return `${label}: ${formatCurrency(value)}`;
                         }
                     }
                 }
             }
+        },
+        interaction: {
+            intersect: false,
+            mode: 'index'
         }
     };
-    
+
     // Apply theme-specific styling
-    applyChartStyle(config);
+    applyChartStyle(options);
     
     // Create or update chart
     if (charts.priceRange) {
         charts.priceRange.data = data;
-        charts.priceRange.options = config.options;
+        charts.priceRange.options = options;
         charts.priceRange.update();
     } else {
-        charts.priceRange = new Chart(canvas, config);
+        charts.priceRange = new Chart(canvas, options);
     }
 }
 
@@ -2632,7 +2834,7 @@ function updateProductTimeChart() {
     
     let chartData;
     
-    if (dashboardState.productTimeView === 'category') {
+    if (dashboardState.productTimeView === 'category') { 
         // Get category sales over time
         chartData = DataService.getSalesByCategoryAndTime(
             dashboardState.startDate, 
@@ -2653,43 +2855,38 @@ function updateProductTimeChart() {
         
         // Group sales by product and month
         const salesByProductAndMonth = {};
+        const months = new Set();
         
         sales.forEach(sale => {
             if (!productIds.includes(sale.product_id)) return;
             
             const date = new Date(sale.date);
             const monthKey = `${date.getFullYear()}-${(date.getMonth() + 1).toString().padStart(2, '0')}`;
-            const productId = sale.product_id;
+            months.add(monthKey);
             
-            if (!salesByProductAndMonth[productId]) {
-                salesByProductAndMonth[productId] = {};
+            if (!salesByProductAndMonth[sale.product_id]) {
+                salesByProductAndMonth[sale.product_id] = {};
             }
             
-            if (!salesByProductAndMonth[productId][monthKey]) {
-                salesByProductAndMonth[productId][monthKey] = 0;
+            if (!salesByProductAndMonth[sale.product_id][monthKey]) {
+                salesByProductAndMonth[sale.product_id][monthKey] = 0;
             }
             
-            salesByProductAndMonth[productId][monthKey] += sale.purchase_amount;
+            salesByProductAndMonth[sale.product_id][monthKey] += sale.purchase_amount;
         });
         
-        // Get all months in the date range
-        const months = [];
-        let currentDate = new Date(dashboardState.startDate);
-        while (currentDate <= dashboardState.endDate) {
-            const monthKey = `${currentDate.getFullYear()}-${(currentDate.getMonth() + 1).toString().padStart(2, '0')}`;
-            months.push(monthKey);
-            currentDate.setMonth(currentDate.getMonth() + 1);
-        }
+        // Convert months Set to sorted array
+        const sortedMonths = Array.from(months).sort();
         
-        // Format for chart
+        // Format data for chart
         chartData = {
-            labels: months,
+            labels: sortedMonths,
             datasets: topProducts.map((product, index) => {
                 const color = getChartColors()[index % getChartColors().length];
                 
                 return {
                     label: product.name,
-                    data: months.map(month => salesByProductAndMonth[product.id]?.[month] || 0),
+                    data: sortedMonths.map(month => salesByProductAndMonth[product.id]?.[month] || 0),
                     borderColor: color,
                     backgroundColor: color + '20',
                     fill: false,
@@ -2726,7 +2923,11 @@ function updateProductTimeChart() {
             },
             plugins: {
                 legend: {
-                    position: 'bottom'
+                    position: 'bottom',
+                    labels: {
+                        boxWidth: 12,
+                        padding: 15
+                    }
                 },
                 tooltip: {
                     callbacks: {
@@ -2737,6 +2938,10 @@ function updateProductTimeChart() {
                         }
                     }
                 }
+            },
+            interaction: {
+                mode: 'index',
+                intersect: false
             }
         }
     };
@@ -2746,9 +2951,8 @@ function updateProductTimeChart() {
     
     // Create or update chart
     if (charts.productTime) {
-        charts.productTime.data = chartData;
-        charts.productTime.options = config.options;
-        charts.productTime.update();
+        charts.productTime.destroy(); // Destroy existing chart
+        charts.productTime = new Chart(canvas, config); // Create new chart
     } else {
         charts.productTime = new Chart(canvas, config);
     }
